@@ -30,10 +30,20 @@ export default function Home() {
       });
   }, [brand, grade, search, sort]);
 
-  const mmCount     = stores.filter(s => s.brand === 'MINKMUI').length;
-  const ppCount     = stores.filter(s => s.brand === 'PP').length;
+  // ── 통계 (필터 적용 기준) ──
   const totalPrev   = stores.reduce((acc, s) => acc + (s.salesPrevYear ?? 0), 0);
   const totalMonth  = stores.reduce((acc, s) => acc + (s.salesLastMonth ?? 0), 0);
+
+  const validHanger  = filtered.filter(s => s.hangers > 0);
+  const avgHangers   = validHanger.length
+    ? (validHanger.reduce((a, s) => a + s.hangers, 0) / validHanger.length).toFixed(1)
+    : '─';
+  const avgSsSku     = validHanger.length
+    ? Math.round(validHanger.reduce((a, s) => a + s.hangers * 15, 0) / validHanger.length)
+    : '─';
+  const avgFwSku     = validHanger.length
+    ? Math.round(validHanger.reduce((a, s) => a + s.hangers * 13, 0) / validHanger.length)
+    : '─';
 
   const grades: (Grade | 'all')[] = ['all', 'A', 'B', 'C', 'D', 'E', 'H'];
 
@@ -50,8 +60,6 @@ export default function Home() {
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-4 text-xs text-blue-200">
-            <span>전체 {stores.length}개 매장</span>
-            <span className="opacity-40">|</span>
             <span>2025 마감 {(totalPrev / 10000).toFixed(1)}억원</span>
             <span className="opacity-40">|</span>
             <span>26년 5월 {(totalMonth / 10000).toFixed(1)}억원</span>
@@ -60,22 +68,25 @@ export default function Home() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
-        {/* 요약 카드 */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+
+        {/* ── 요약 통계 (필터 반응) ── */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
           {[
-            { label: '전체 매장',       value: `${stores.length}개`,                    color: '#1F3864' },
-            { label: 'MINKMUI',         value: `${mmCount}개`,                           color: '#2E75B6' },
-            { label: 'PETIT PALAIS',    value: `${ppCount}개`,                           color: '#538135' },
-            { label: '26년 5월 매출',   value: `${(totalMonth / 10000).toFixed(1)}억원`, color: '#C55A11' },
+            { label: '조회 매장', value: `${filtered.length}개`,                           color: '#1F3864' },
+            { label: 'MINKMUI',   value: `${stores.filter(s=>s.brand==='MINKMUI').length}개`, color: '#2E75B6' },
+            { label: 'PETIT PALAIS', value: `${stores.filter(s=>s.brand==='PP').length}개`,  color: '#538135' },
+            { label: '평균 행거수',  value: `${avgHangers}개`,                               color: '#6B7280' },
+            { label: '평균 SS 적정', value: `${avgSsSku}개`,                                 color: '#2E75B6' },
+            { label: '평균 FW 적정', value: `${avgFwSku}개`,                                 color: '#1F3864' },
           ].map(c => (
-            <div key={c.label} className="bg-white rounded-xl px-4 py-3.5 shadow-sm border border-slate-100">
-              <div className="text-xs text-slate-400 mb-1">{c.label}</div>
-              <div className="text-xl font-bold" style={{ color: c.color }}>{c.value}</div>
+            <div key={c.label} className="bg-white rounded-xl px-3 py-3 shadow-sm border border-slate-100">
+              <div className="text-[10px] text-slate-400 mb-1">{c.label}</div>
+              <div className="text-lg font-bold" style={{ color: c.color }}>{c.value}</div>
             </div>
           ))}
         </div>
 
-        {/* 필터 바 */}
+        {/* ── 필터 바 ── */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-3 mb-5 flex flex-wrap gap-3 items-center">
           {/* 브랜드 탭 */}
           <div className="flex rounded-lg overflow-hidden border border-slate-200 text-sm">
@@ -91,15 +102,15 @@ export default function Home() {
           </div>
 
           {/* 등급 필터 */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 flex-wrap">
             {grades.map(g => {
               const active = grade === g;
-              const style = g !== 'all' ? GRADE_STYLE[g as string] : null;
+              const gs = g !== 'all' ? GRADE_STYLE[g as string] : null;
               return (
                 <button key={String(g)} onClick={() => setGrade(g)}
                   className="text-xs font-bold px-2.5 py-1 rounded-md border transition-all"
                   style={active
-                    ? { background: style?.bg ?? '#1F3864', color: style?.text ?? 'white', borderColor: style?.bg ?? '#1F3864' }
+                    ? { background: gs?.bg ?? '#1F3864', color: gs?.text ?? 'white', borderColor: gs?.bg ?? '#1F3864' }
                     : { background: 'white', color: '#94A3B8', borderColor: '#E2E8F0' }}>
                   {g === 'all' ? '전체등급' : `${g}등급`}
                 </button>
@@ -126,7 +137,7 @@ export default function Home() {
           <span className="text-xs text-slate-400 ml-auto">{filtered.length}개 매장</span>
         </div>
 
-        {/* 카드 그리드 */}
+        {/* ── 카드 그리드 ── */}
         {filtered.length === 0 ? (
           <div className="text-center text-slate-400 py-20 text-sm">검색 결과가 없습니다.</div>
         ) : (
@@ -139,7 +150,7 @@ export default function Home() {
       </main>
 
       <footer className="text-center py-6 text-xs text-slate-400">
-        전년: 2025 마감 기준 · 지난달: 2026년 5월 마감 기준 · 단위: 천원÷10 = 만원
+        전년: 2025 마감 기준 · 지난달: 2026년 5월 기준 · 단위: 천원÷10 = 만원 · 운영이슈/SKU/샵인샵은 브라우저 저장
       </footer>
     </div>
   );

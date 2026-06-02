@@ -1,21 +1,27 @@
 'use client';
 import { useState } from 'react';
 import { Store, fmtDate, fmtSales, GRADE_STYLE } from '@/lib/stores';
-import { useNote } from '@/app/hooks/useNotes';
+import { useNote, useActualSku, useShopInShop } from '@/app/hooks/useNotes';
 
-const MM_COLOR = '#2E75B6';
-const PP_COLOR = '#538135';
+const MM_COLOR  = '#2E75B6';
+const PP_COLOR  = '#538135';
+const DARK_NAVY = '#1F3864';
 
 export default function StoreCard({ store }: { store: Store }) {
+  const storeKey = `${store.brand}_${store.code}_${store.no}`;
   const [imgErr, setImgErr] = useState(false);
-  const [editingNote, setEditingNote] = useState(false);
-  const [draft, setDraft] = useState('');
-  const { note, save, ready } = useNote(`${store.brand}_${store.code}_${store.no}`);
+  const [editNote, setEditNote]     = useState(false);
+  const [draftNote, setDraftNote]   = useState('');
+  const [editSku, setEditSku]       = useState(false);
+  const [draftSku, setDraftSku]     = useState('');
+  const { note, save: saveNote, ready: noteReady }     = useNote(storeKey);
+  const { sku: actualSku, save: saveActualSku }         = useActualSku(storeKey);
+  const { isSIS, toggle: toggleSIS }                    = useShopInShop(storeKey);
 
-  const isMM = store.brand === 'MINKMUI';
-  const accent = isMM ? MM_COLOR : PP_COLOR;
-  const ssSku  = store.hangers * 15;
-  const fwSku  = store.hangers * 13;
+  const isMM    = store.brand === 'MINKMUI';
+  const accent  = isMM ? MM_COLOR : PP_COLOR;
+  const ssSku   = store.hangers * 15;
+  const fwSku   = store.hangers * 13;
   const gradeStyle = store.grade ? GRADE_STYLE[store.grade] : null;
 
   const monthlyAvg = store.salesPrevYear ? Math.round(store.salesPrevYear / 12) : null;
@@ -25,16 +31,14 @@ export default function StoreCard({ store }: { store: Store }) {
       : store.salesLastMonth <= monthlyAvg * 0.95 ? 'down' : 'flat'
       : null;
 
-  const photoSrc = store.photoFile ? `/사진/${encodeURIComponent(store.photoFile)}` : null;
+  // 실제 운영 SKU 대비 적정 SKU 비교
+  const skuStatus =
+    actualSku === null ? null
+    : actualSku > ssSku ? 'over'
+    : actualSku < Math.round(ssSku * 0.8) ? 'under'
+    : 'ok';
 
-  function startEdit() {
-    setDraft(note);
-    setEditingNote(true);
-  }
-  function commitEdit() {
-    save(draft);
-    setEditingNote(false);
-  }
+  const photoSrc = store.photoFile ? `/사진/${encodeURIComponent(store.photoFile)}` : null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden border border-slate-100 flex flex-col">
@@ -52,18 +56,26 @@ export default function StoreCard({ store }: { store: Store }) {
             <span className="text-[10px] text-slate-300 mt-1">사진 없음</span>
           </div>
         )}
+        {/* 브랜드 */}
         <span className="absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"
           style={{ background: accent }}>
           {isMM ? 'MINKMUI' : 'PETIT PALAIS'}
         </span>
-        <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/80 text-slate-600">
-          {store.type === 'I' ? '직영' : '벤더'}
-        </span>
+        {/* 샵인샵 + 형태 뱃지 */}
+        <div className="absolute top-2 right-2 flex gap-1">
+          {isSIS && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+              style={{ background: '#7C3AED' }}>샵인샵</span>
+          )}
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/80 text-slate-600">
+            {store.type === 'I' ? '직영' : '벤더'}
+          </span>
+        </div>
       </div>
 
-      {/* ── 매장명 + 등급 ── */}
+      {/* ── 매장명 + 등급 + 샵인샵 토글 ── */}
       <div className="px-3.5 pt-3 pb-2 border-b border-slate-100 flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-bold text-slate-900 text-[15px] leading-tight truncate">{store.name}</h3>
           <p className="text-[11px] text-slate-400 mt-0.5">
             {store.code}
@@ -71,34 +83,83 @@ export default function StoreCard({ store }: { store: Store }) {
             {store.area ? ` · ${store.area}평` : ''}
           </p>
         </div>
-        {gradeStyle && (
-          <span className="flex-shrink-0 text-[12px] font-black px-2.5 py-0.5 rounded-lg mt-0.5"
-            style={{ background: gradeStyle.bg, color: gradeStyle.text }}>
-            {store.grade}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* 샵인샵 토글 */}
+          <button onClick={toggleSIS} title="샵인샵 토글"
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
+              isSIS
+                ? 'border-violet-400 text-violet-700 bg-violet-50'
+                : 'border-slate-200 text-slate-300 bg-white hover:text-slate-400'
+            }`}>
+            샵인샵
+          </button>
+          {gradeStyle && (
+            <span className="text-[12px] font-black px-2.5 py-0.5 rounded-lg"
+              style={{ background: gradeStyle.bg, color: gradeStyle.text }}>
+              {store.grade}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* ── 적정 SKU (핵심 섹션) ── */}
+      {/* ── 적정 SKU (핵심) ── */}
       <div className="px-3.5 py-3 border-b border-slate-100" style={{ background: '#F0F6FF' }}>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold text-slate-500 tracking-wide uppercase">적정 SKU</span>
-          <span className="text-[11px] text-slate-400">행거 <b className="text-slate-600">{store.hangers}</b>개 기준</span>
+          <span className="text-[11px] font-bold text-slate-500 tracking-wide">적정 SKU</span>
+          <span className="text-[11px] text-slate-400">행거 <b className="text-slate-700">{store.hangers}</b>개</span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {/* SS 적정 */}
+        {/* SS / FW 박스 */}
+        <div className="grid grid-cols-2 gap-2 mb-2.5">
           <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: MM_COLOR }}>
             <div className="text-[10px] font-semibold text-blue-100 mb-0.5">SS 적정</div>
             <div className="text-2xl font-black text-white leading-none">{ssSku}</div>
             <div className="text-[10px] text-blue-200 mt-0.5">최대 {store.hangers * 20}</div>
           </div>
-          {/* FW 적정 */}
-          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: '#1F3864' }}>
+          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: DARK_NAVY }}>
             <div className="text-[10px] font-semibold text-blue-200 mb-0.5">FW 적정</div>
             <div className="text-2xl font-black text-white leading-none">{fwSku}</div>
             <div className="text-[10px] text-blue-300 mt-0.5">최대 {store.hangers * 18}</div>
           </div>
         </div>
+
+        {/* 실제 운영 SKU */}
+        {!editSku ? (
+          <div className="flex items-center justify-between cursor-pointer group"
+            onClick={() => { setDraftSku(actualSku !== null ? String(actualSku) : ''); setEditSku(true); }}>
+            <span className="text-[11px] text-slate-500 font-medium">실제 운영 SKU</span>
+            <div className="flex items-center gap-1.5">
+              {actualSku !== null ? (
+                <>
+                  <span className={`text-[13px] font-bold ${
+                    skuStatus === 'over' ? 'text-orange-600'
+                    : skuStatus === 'under' ? 'text-red-500'
+                    : 'text-emerald-600'}`}>
+                    {actualSku}개
+                  </span>
+                  {skuStatus === 'over' && <span className="text-[9px] bg-orange-100 text-orange-600 px-1 py-0.5 rounded">초과</span>}
+                  {skuStatus === 'under' && <span className="text-[9px] bg-red-100 text-red-500 px-1 py-0.5 rounded">부족</span>}
+                  {skuStatus === 'ok'    && <span className="text-[9px] bg-emerald-100 text-emerald-600 px-1 py-0.5 rounded">적정</span>}
+                  <span className="text-[10px] text-slate-300 opacity-0 group-hover:opacity-100">수정</span>
+                </>
+              ) : (
+                <span className="text-[11px] text-slate-300 group-hover:text-slate-400">+ 입력</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">실제 운영 SKU</span>
+            <input autoFocus type="number" value={draftSku}
+              onChange={e => setDraftSku(e.target.value)}
+              placeholder="수량 입력"
+              className="flex-1 text-[12px] border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-200 w-0" />
+            <button onClick={() => { saveActualSku(draftSku ? parseInt(draftSku, 10) : null); setEditSku(false); }}
+              className="text-[11px] px-2.5 py-1 rounded-md text-white font-semibold flex-shrink-0"
+              style={{ background: MM_COLOR }}>저장</button>
+            <button onClick={() => setEditSku(false)}
+              className="text-[11px] text-slate-400 flex-shrink-0">✕</button>
+          </div>
+        )}
       </div>
 
       {/* ── 매출 ── */}
@@ -109,7 +170,8 @@ export default function StoreCard({ store }: { store: Store }) {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-[11px] text-slate-400">26년 5월</span>
-          <span className={`text-[13px] font-semibold flex items-center gap-1 ${trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-red-500' : 'text-slate-600'}`}>
+          <span className={`text-[13px] font-semibold flex items-center gap-1 ${
+            trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-red-500' : 'text-slate-600'}`}>
             {trend === 'up' && <span className="text-[10px]">▲</span>}
             {trend === 'down' && <span className="text-[10px]">▼</span>}
             {fmtSales(store.salesLastMonth)}
@@ -119,21 +181,19 @@ export default function StoreCard({ store }: { store: Store }) {
 
       {/* ── 운영 이슈 ── */}
       <div className="px-3.5 py-2.5">
-        {!editingNote ? (
-          <div className="flex items-start gap-2 cursor-pointer group" onClick={startEdit}>
-            {ready && note ? (
-              <div className="flex-1 min-w-0">
+        {!editNote ? (
+          <div className="cursor-pointer group" onClick={() => { setDraftNote(note); setEditNote(true); }}>
+            {noteReady && note ? (
+              <div>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                   <span className="text-[10px] font-bold text-amber-700">운영 이슈</span>
-                  <span className="text-[10px] text-slate-400 ml-auto opacity-0 group-hover:opacity-100">수정</span>
+                  <span className="text-[10px] text-slate-300 ml-auto opacity-0 group-hover:opacity-100">수정</span>
                 </div>
                 <p className="text-[12px] text-slate-700 leading-snug whitespace-pre-wrap break-words">{note}</p>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-slate-300 hover:text-slate-400 transition-colors">
-                <span className="text-[11px]">+ 운영 이슈 기재</span>
-              </div>
+              <span className="text-[11px] text-slate-300 group-hover:text-slate-400">+ 운영 이슈 기재</span>
             )}
           </div>
         ) : (
@@ -142,18 +202,13 @@ export default function StoreCard({ store }: { store: Store }) {
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
               <span className="text-[10px] font-bold text-amber-700">운영 이슈</span>
             </div>
-            <textarea
-              autoFocus
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              placeholder="이슈 내용 입력..."
-              rows={3}
-              className="w-full text-[12px] border border-slate-200 rounded-lg px-2.5 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 text-slate-700"
-            />
+            <textarea autoFocus value={draftNote} onChange={e => setDraftNote(e.target.value)}
+              placeholder="이슈 내용 입력..." rows={3}
+              className="w-full text-[12px] border border-slate-200 rounded-lg px-2.5 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 text-slate-700" />
             <div className="flex gap-2 mt-1.5 justify-end">
-              <button onClick={() => setEditingNote(false)}
+              <button onClick={() => setEditNote(false)}
                 className="text-[11px] px-3 py-1 rounded-md text-slate-400 hover:text-slate-600">취소</button>
-              <button onClick={commitEdit}
+              <button onClick={() => { saveNote(draftNote); setEditNote(false); }}
                 className="text-[11px] px-3 py-1 rounded-md text-white font-semibold"
                 style={{ background: MM_COLOR }}>저장</button>
             </div>
