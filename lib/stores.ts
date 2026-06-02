@@ -1,6 +1,6 @@
 export type Brand = 'MINKMUI' | 'PP';
 export type StoreType = 'I' | 'B';
-export type Grade = 'A' | 'B' | 'C' | 'D' | 'E' | null;
+export type Grade = 'A' | 'B' | 'C' | 'D' | 'E' | 'H' | null;
 
 export interface Store {
   no: number;
@@ -45,7 +45,7 @@ export const stores: Store[] = [
   { no:24, brand:'MINKMUI', code:'31420', name:'현대무역',          type:'B', openDate:'22.09.23', area:7.6,   hangers:11, grade:'B', salesPrevYear:75449,  salesLastMonth:27337, photoFile:'현대 무역.jpg'        },
   { no:25, brand:'MINKMUI', code:'31520', name:'현대목동',          type:'B', openDate:'22.08.13', area:11.4,  hangers:12, grade:'B', salesPrevYear:66712,  salesLastMonth:25559, photoFile:'현대 목동.jpg'        },
   { no:26, brand:'MINKMUI', code:'31430', name:'현대신촌',          type:'I', openDate:'22.08.09', area:6.09,  hangers:9,  grade:'C', salesPrevYear:44554,  salesLastMonth:11735, photoFile:'현대 신촌.jpg'        },
-  { no:27, brand:'MINKMUI', code:'31660', name:'신세계본점',        type:'I', openDate:'22.08.09', area:7.37,  hangers:11, grade:null, salesPrevYear:48388, salesLastMonth:20621, photoFile:'신세계 본점.jpg'      },
+  { no:27, brand:'MINKMUI', code:'31660', name:'신세계본점',        type:'I', openDate:'22.08.09', area:7.37,  hangers:11, grade:'H', salesPrevYear:48388,  salesLastMonth:20621, photoFile:'신세계 본점.jpg'      },
   { no:28, brand:'MINKMUI', code:'31700', name:'신세계 천안아산',   type:'I', openDate:'21.09.06', area:10,    hangers:11, grade:'B', salesPrevYear:65046,  salesLastMonth:27764, photoFile:'신세계 천안아산.jpg'  },
   { no:29, brand:'MINKMUI', code:'31540', name:'현대킨텍스',        type:'B', openDate:'21.08.31', area:8.18,  hangers:12, grade:'C', salesPrevYear:43111,  salesLastMonth:14815, photoFile:'현대 킨텍스.jpg'      },
   { no:30, brand:'MINKMUI', code:'31850', name:'신세계대전',        type:'I', openDate:'',         area:7.24,  hangers:9,  grade:'B', salesPrevYear:54321,  salesLastMonth:24982, photoFile:'신세계 대전.jpg'      },
@@ -98,4 +98,5 @@ export const GRADE_STYLE: Record<string, { bg: string; text: string }> = {
   C: { bg: '#D1FAE5', text: '#065F46' },
   D: { bg: '#FEE2E2', text: '#991B1B' },
   E: { bg: '#F3F4F6', text: '#6B7280' },
+  H: { bg: '#EDE9FE', text: '#5B21B6' },
 };

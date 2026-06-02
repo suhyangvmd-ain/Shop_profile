@@ -35,7 +35,7 @@ export default function Home() {
   const totalPrev   = stores.reduce((acc, s) => acc + (s.salesPrevYear ?? 0), 0);
   const totalMonth  = stores.reduce((acc, s) => acc + (s.salesLastMonth ?? 0), 0);
 
-  const grades: (Grade | 'all')[] = ['all', 'A', 'B', 'C', 'D', 'E'];
+  const grades: (Grade | 'all')[] = ['all', 'A', 'B', 'C', 'D', 'E', 'H'];
 
   return (
     <div className="min-h-screen" style={{ background: '#F1F5F9' }}>
