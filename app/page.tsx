@@ -22,7 +22,7 @@ export default function Home() {
         switch (sort) {
           case 'sales':      return (b.salesPrevYear ?? 0) - (a.salesPrevYear ?? 0);
           case 'salesMonth': return (b.salesLastMonth ?? 0) - (a.salesLastMonth ?? 0);
-          case 'hangers':    return b.hangers - a.hangers;
+          case 'hangers':    return (b.wlHangers + b.essHangers) - (a.wlHangers + a.essHangers);
           case 'area':       return (b.area ?? 0) - (a.area ?? 0);
           case 'name':       return a.name.localeCompare(b.name, 'ko');
           default:           return b.openDate.localeCompare(a.openDate);
@@ -34,15 +34,15 @@ export default function Home() {
   const totalPrev   = stores.reduce((acc, s) => acc + (s.salesPrevYear ?? 0), 0);
   const totalMonth  = stores.reduce((acc, s) => acc + (s.salesLastMonth ?? 0), 0);
 
-  const validHanger  = filtered.filter(s => s.hangers > 0);
+  const validHanger  = filtered.filter(s => s.wlHangers > 0);
   const avgHangers   = validHanger.length
-    ? (validHanger.reduce((a, s) => a + s.hangers, 0) / validHanger.length).toFixed(1)
+    ? ((validHanger.reduce((a, s) => a + s.wlHangers + s.essHangers, 0)) / validHanger.length).toFixed(1)
     : '─';
   const avgSsSku     = validHanger.length
-    ? Math.round(validHanger.reduce((a, s) => a + s.hangers * 15, 0) / validHanger.length)
+    ? Math.round(validHanger.reduce((a, s) => a + s.wlHangers * 15, 0) / validHanger.length)
     : '─';
   const avgFwSku     = validHanger.length
-    ? Math.round(validHanger.reduce((a, s) => a + s.hangers * 13, 0) / validHanger.length)
+    ? Math.round(validHanger.reduce((a, s) => a + s.wlHangers * 13, 0) / validHanger.length)
     : '─';
 
   const grades: (Grade | 'all')[] = ['all', 'A', 'B', 'C', 'D', 'E', 'H'];

@@ -1,6 +1,9 @@
 'use client';
 import { useState } from 'react';
 import { Store, fmtDate, fmtSales, GRADE_STYLE } from '@/lib/stores';
+
+// 총 행거수 = wlHangers + essHangers
+function totalHangers(s: Store) { return s.wlHangers + s.essHangers; }
 import { useNote, useActualSku, useShopInShop } from '@/app/hooks/useNotes';
 
 const MM_COLOR  = '#2E75B6';
@@ -20,8 +23,9 @@ export default function StoreCard({ store }: { store: Store }) {
 
   const isMM    = store.brand === 'MINKMUI';
   const accent  = isMM ? MM_COLOR : PP_COLOR;
-  const ssSku   = store.hangers * 15;
-  const fwSku   = store.hangers * 13;
+  const total   = totalHangers(store);
+  const ssSku   = store.wlHangers * 15;
+  const fwSku   = store.wlHangers * 13;
   const gradeStyle = store.grade ? GRADE_STYLE[store.grade] : null;
 
   const monthlyAvg = store.salesPrevYear ? Math.round(store.salesPrevYear / 12) : null;
@@ -31,7 +35,6 @@ export default function StoreCard({ store }: { store: Store }) {
       : store.salesLastMonth <= monthlyAvg * 0.95 ? 'down' : 'flat'
       : null;
 
-  // 실제 운영 SKU 대비 적정 SKU 비교
   const skuStatus =
     actualSku === null ? null
     : actualSku > ssSku ? 'over'
@@ -61,16 +64,11 @@ export default function StoreCard({ store }: { store: Store }) {
           style={{ background: accent }}>
           {isMM ? 'MINKMUI' : 'PETIT PALAIS'}
         </span>
-        {/* 샵인샵 + 형태 뱃지 */}
-        <div className="absolute top-2 right-2 flex gap-1">
-          {isSIS && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-              style={{ background: '#7C3AED' }}>샵인샵</span>
-          )}
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/80 text-slate-600">
-            {store.type === 'I' ? '직영' : '벤더'}
-          </span>
-        </div>
+        {/* 샵인샵 뱃지 */}
+        {isSIS && (
+          <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+            style={{ background: '#7C3AED' }}>샵인샵</span>
+        )}
       </div>
 
       {/* ── 매장명 + 등급 + 샵인샵 토글 ── */}
@@ -83,7 +81,7 @@ export default function StoreCard({ store }: { store: Store }) {
             {store.area ? ` · ${store.area}평` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
           {/* 샵인샵 토글 */}
           <button onClick={toggleSIS} title="샵인샵 토글"
             className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
@@ -106,19 +104,19 @@ export default function StoreCard({ store }: { store: Store }) {
       <div className="px-3.5 py-3 border-b border-slate-100" style={{ background: '#F0F6FF' }}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-bold text-slate-500 tracking-wide">적정 SKU</span>
-          <span className="text-[11px] text-slate-400">행거 <b className="text-slate-700">{store.hangers}</b>개</span>
+          <span className="text-[11px] text-slate-400">총 행거 <b className="text-slate-700">{total}</b>개</span>
         </div>
         {/* SS / FW 박스 */}
         <div className="grid grid-cols-2 gap-2 mb-2.5">
           <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: MM_COLOR }}>
             <div className="text-[10px] font-semibold text-blue-100 mb-0.5">SS 적정</div>
             <div className="text-2xl font-black text-white leading-none">{ssSku}</div>
-            <div className="text-[10px] text-blue-200 mt-0.5">최대 {store.hangers * 20}</div>
+            <div className="text-[10px] text-blue-200 mt-0.5">최대 {store.wlHangers * 20}</div>
           </div>
           <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: DARK_NAVY }}>
             <div className="text-[10px] font-semibold text-blue-200 mb-0.5">FW 적정</div>
             <div className="text-2xl font-black text-white leading-none">{fwSku}</div>
-            <div className="text-[10px] text-blue-300 mt-0.5">최대 {store.hangers * 18}</div>
+            <div className="text-[10px] text-blue-300 mt-0.5">최대 {store.wlHangers * 18}</div>
           </div>
         </div>
 
