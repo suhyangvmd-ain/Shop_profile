@@ -1,123 +1,166 @@
 'use client';
 import { useState } from 'react';
 import { Store, fmtDate, fmtSales, GRADE_STYLE } from '@/lib/stores';
+import { useNote } from '@/app/hooks/useNotes';
 
 const MM_COLOR = '#2E75B6';
 const PP_COLOR = '#538135';
 
 export default function StoreCard({ store }: { store: Store }) {
   const [imgErr, setImgErr] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [draft, setDraft] = useState('');
+  const { note, save, ready } = useNote(`${store.brand}_${store.code}_${store.no}`);
+
   const isMM = store.brand === 'MINKMUI';
   const accent = isMM ? MM_COLOR : PP_COLOR;
-  const ssSku = store.hangers * 15;
-  const fwSku = store.hangers * 13;
+  const ssSku  = store.hangers * 15;
+  const fwSku  = store.hangers * 13;
   const gradeStyle = store.grade ? GRADE_STYLE[store.grade] : null;
 
-  // 전년 대비 5월 추이 (단순 비교: 전년÷12 기준)
   const monthlyAvg = store.salesPrevYear ? Math.round(store.salesPrevYear / 12) : null;
-  const salesTrend =
+  const trend =
     store.salesLastMonth && monthlyAvg
-      ? store.salesLastMonth >= monthlyAvg * 1.05
-        ? 'up'
-        : store.salesLastMonth <= monthlyAvg * 0.95
-        ? 'down'
-        : 'flat'
+      ? store.salesLastMonth >= monthlyAvg * 1.05 ? 'up'
+      : store.salesLastMonth <= monthlyAvg * 0.95 ? 'down' : 'flat'
       : null;
+
+  const photoSrc = store.photoFile ? `/사진/${encodeURIComponent(store.photoFile)}` : null;
+
+  function startEdit() {
+    setDraft(note);
+    setEditingNote(true);
+  }
+  function commitEdit() {
+    save(draft);
+    setEditingNote(false);
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden border border-slate-100 flex flex-col">
-      {/* 사진 */}
-      <div className="relative h-40 bg-slate-100 flex-shrink-0">
-        {!imgErr ? (
+
+      {/* ── 사진 ── */}
+      <div className="relative h-36 bg-slate-100 flex-shrink-0">
+        {photoSrc && !imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/사진/${encodeURIComponent(store.name)}.jpg`}
-            alt={store.name}
+          <img src={photoSrc} alt={store.name}
             className="w-full h-full object-cover"
-            onError={() => setImgErr(true)}
-          />
+            onError={() => setImgErr(true)} />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-1">
-            <span className="text-5xl opacity-10">🏬</span>
-            <span className="text-xs text-slate-300">사진 없음</span>
+          <div className="flex flex-col items-center justify-center h-full">
+            <span className="text-4xl opacity-10">🏬</span>
+            <span className="text-[10px] text-slate-300 mt-1">사진 없음</span>
           </div>
         )}
-        {/* 브랜드 뱃지 */}
-        <span
-          className="absolute top-2.5 left-2.5 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: accent }}
-        >
+        <span className="absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"
+          style={{ background: accent }}>
           {isMM ? 'MINKMUI' : 'PETIT PALAIS'}
         </span>
-        {/* 매장 형태 뱃지 */}
-        <span className="absolute top-2.5 right-2.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/80 backdrop-blur-sm text-slate-600 border border-white/60">
+        <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/80 text-slate-600">
           {store.type === 'I' ? '직영' : '벤더'}
         </span>
       </div>
 
-      {/* 매장명 + 등급 */}
-      <div className="px-4 pt-3.5 pb-2.5 border-b border-slate-100 flex items-start justify-between gap-2">
+      {/* ── 매장명 + 등급 ── */}
+      <div className="px-3.5 pt-3 pb-2 border-b border-slate-100 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="font-bold text-slate-900 text-[15px] leading-tight truncate">{store.name}</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">코드 {store.code}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            {store.code}
+            {store.openDate ? ` · ${fmtDate(store.openDate)}` : ''}
+            {store.area ? ` · ${store.area}평` : ''}
+          </p>
         </div>
         {gradeStyle && (
-          <span
-            className="flex-shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md mt-0.5"
-            style={{ background: gradeStyle.bg, color: gradeStyle.text }}
-          >
+          <span className="flex-shrink-0 text-[12px] font-black px-2.5 py-0.5 rounded-lg mt-0.5"
+            style={{ background: gradeStyle.bg, color: gradeStyle.text }}>
             {store.grade}
           </span>
         )}
       </div>
 
-      {/* 기본 정보 */}
-      <div className="px-4 py-3 grid grid-cols-2 gap-x-3 gap-y-2.5 border-b border-slate-100 flex-1">
-        <Info label="오픈일" value={fmtDate(store.openDate)} />
-        <Info label="평수" value={store.area ? `${store.area}평` : '─'} />
-        <Info label="행거수" value={`${store.hangers}개`} />
-        <div />
-        <Info label="SS 적정 SKU" value={`${ssSku}개`} accent={accent} />
-        <Info label="FW 적정 SKU" value={`${fwSku}개`} accent={accent} />
-        <Info label="SS 최대 SKU" value={`${store.hangers * 20}개`} dim />
-        <Info label="FW 최대 SKU" value={`${store.hangers * 18}개`} dim />
+      {/* ── 적정 SKU (핵심 섹션) ── */}
+      <div className="px-3.5 py-3 border-b border-slate-100" style={{ background: '#F0F6FF' }}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-bold text-slate-500 tracking-wide uppercase">적정 SKU</span>
+          <span className="text-[11px] text-slate-400">행거 <b className="text-slate-600">{store.hangers}</b>개 기준</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {/* SS 적정 */}
+          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: MM_COLOR }}>
+            <div className="text-[10px] font-semibold text-blue-100 mb-0.5">SS 적정</div>
+            <div className="text-2xl font-black text-white leading-none">{ssSku}</div>
+            <div className="text-[10px] text-blue-200 mt-0.5">최대 {store.hangers * 20}</div>
+          </div>
+          {/* FW 적정 */}
+          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: '#1F3864' }}>
+            <div className="text-[10px] font-semibold text-blue-200 mb-0.5">FW 적정</div>
+            <div className="text-2xl font-black text-white leading-none">{fwSku}</div>
+            <div className="text-[10px] text-blue-300 mt-0.5">최대 {store.hangers * 18}</div>
+          </div>
+        </div>
       </div>
 
-      {/* 매출 */}
-      <div className="px-4 py-3 space-y-1.5">
-        <SalesRow label="전년 매출 (2025 마감)" value={fmtSales(store.salesPrevYear)} bold />
-        <SalesRow label="지난달 (2026.05)" value={fmtSales(store.salesLastMonth)} trend={salesTrend} />
+      {/* ── 매출 ── */}
+      <div className="px-3.5 py-2.5 border-b border-slate-100 space-y-1">
+        <div className="flex justify-between items-center">
+          <span className="text-[11px] text-slate-400">전년 (2025 마감)</span>
+          <span className="text-[13px] font-bold text-slate-800">{fmtSales(store.salesPrevYear)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-[11px] text-slate-400">26년 5월</span>
+          <span className={`text-[13px] font-semibold flex items-center gap-1 ${trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-red-500' : 'text-slate-600'}`}>
+            {trend === 'up' && <span className="text-[10px]">▲</span>}
+            {trend === 'down' && <span className="text-[10px]">▼</span>}
+            {fmtSales(store.salesLastMonth)}
+          </span>
+        </div>
       </div>
-    </div>
-  );
-}
 
-function Info({ label, value, accent, dim }: { label: string; value: string; accent?: string; dim?: boolean }) {
-  return (
-    <div>
-      <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
-      <div
-        className={`text-[13px] font-semibold ${dim ? 'text-slate-400' : 'text-slate-700'}`}
-        style={accent ? { color: accent } : undefined}
-      >
-        {value}
+      {/* ── 운영 이슈 ── */}
+      <div className="px-3.5 py-2.5">
+        {!editingNote ? (
+          <div className="flex items-start gap-2 cursor-pointer group" onClick={startEdit}>
+            {ready && note ? (
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                  <span className="text-[10px] font-bold text-amber-700">운영 이슈</span>
+                  <span className="text-[10px] text-slate-400 ml-auto opacity-0 group-hover:opacity-100">수정</span>
+                </div>
+                <p className="text-[12px] text-slate-700 leading-snug whitespace-pre-wrap break-words">{note}</p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-slate-300 hover:text-slate-400 transition-colors">
+                <span className="text-[11px]">+ 운영 이슈 기재</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span className="text-[10px] font-bold text-amber-700">운영 이슈</span>
+            </div>
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              placeholder="이슈 내용 입력..."
+              rows={3}
+              className="w-full text-[12px] border border-slate-200 rounded-lg px-2.5 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 text-slate-700"
+            />
+            <div className="flex gap-2 mt-1.5 justify-end">
+              <button onClick={() => setEditingNote(false)}
+                className="text-[11px] px-3 py-1 rounded-md text-slate-400 hover:text-slate-600">취소</button>
+              <button onClick={commitEdit}
+                className="text-[11px] px-3 py-1 rounded-md text-white font-semibold"
+                style={{ background: MM_COLOR }}>저장</button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
 
-function SalesRow({ label, value, bold, trend }: {
-  label: string; value: string; bold?: boolean; trend?: 'up' | 'down' | 'flat' | null
-}) {
-  const trendIcon = trend === 'up' ? '▲' : trend === 'down' ? '▼' : '';
-  const trendColor = trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-400' : '';
-  return (
-    <div className="flex justify-between items-center">
-      <span className="text-[11px] text-slate-400">{label}</span>
-      <span className={`text-[13px] flex items-center gap-1 ${bold ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
-        {trendIcon && <span className={`text-[10px] ${trendColor}`}>{trendIcon}</span>}
-        {value}
-      </span>
     </div>
   );
 }
