@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Store, fmtDate, fmtSales } from '@/lib/stores';
+import { Store, fmtDate, fmtSales, GRADE_STYLE } from '@/lib/stores';
 
 const MM_COLOR = '#2E75B6';
 const PP_COLOR = '#538135';
@@ -11,6 +11,18 @@ export default function StoreCard({ store }: { store: Store }) {
   const accent = isMM ? MM_COLOR : PP_COLOR;
   const ssSku = store.hangers * 15;
   const fwSku = store.hangers * 13;
+  const gradeStyle = store.grade ? GRADE_STYLE[store.grade] : null;
+
+  // 전년 대비 5월 추이 (단순 비교: 전년÷12 기준)
+  const monthlyAvg = store.salesPrevYear ? Math.round(store.salesPrevYear / 12) : null;
+  const salesTrend =
+    store.salesLastMonth && monthlyAvg
+      ? store.salesLastMonth >= monthlyAvg * 1.05
+        ? 'up'
+        : store.salesLastMonth <= monthlyAvg * 0.95
+        ? 'down'
+        : 'flat'
+      : null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden border border-slate-100 flex flex-col">
@@ -43,13 +55,23 @@ export default function StoreCard({ store }: { store: Store }) {
         </span>
       </div>
 
-      {/* 매장명 */}
-      <div className="px-4 pt-3.5 pb-2.5 border-b border-slate-100">
-        <h3 className="font-bold text-slate-900 text-[15px] leading-tight">{store.name}</h3>
-        <p className="text-[11px] text-slate-400 mt-0.5">코드 {store.code}</p>
+      {/* 매장명 + 등급 */}
+      <div className="px-4 pt-3.5 pb-2.5 border-b border-slate-100 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="font-bold text-slate-900 text-[15px] leading-tight truncate">{store.name}</h3>
+          <p className="text-[11px] text-slate-400 mt-0.5">코드 {store.code}</p>
+        </div>
+        {gradeStyle && (
+          <span
+            className="flex-shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md mt-0.5"
+            style={{ background: gradeStyle.bg, color: gradeStyle.text }}
+          >
+            {store.grade}
+          </span>
+        )}
       </div>
 
-      {/* 기본 정보 그리드 */}
+      {/* 기본 정보 */}
       <div className="px-4 py-3 grid grid-cols-2 gap-x-3 gap-y-2.5 border-b border-slate-100 flex-1">
         <Info label="오픈일" value={fmtDate(store.openDate)} />
         <Info label="평수" value={store.area ? `${store.area}평` : '─'} />
@@ -63,8 +85,8 @@ export default function StoreCard({ store }: { store: Store }) {
 
       {/* 매출 */}
       <div className="px-4 py-3 space-y-1.5">
-        <SalesRow label="전년 매출 (2025)" value={fmtSales(store.salesPrevYear)} bold />
-        <SalesRow label="지난달 매출" value={fmtSales(store.salesLastMonth)} />
+        <SalesRow label="전년 매출 (2025 마감)" value={fmtSales(store.salesPrevYear)} bold />
+        <SalesRow label="지난달 (2026.05)" value={fmtSales(store.salesLastMonth)} trend={salesTrend} />
       </div>
     </div>
   );
@@ -84,11 +106,16 @@ function Info({ label, value, accent, dim }: { label: string; value: string; acc
   );
 }
 
-function SalesRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function SalesRow({ label, value, bold, trend }: {
+  label: string; value: string; bold?: boolean; trend?: 'up' | 'down' | 'flat' | null
+}) {
+  const trendIcon = trend === 'up' ? '▲' : trend === 'down' ? '▼' : '';
+  const trendColor = trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-400' : '';
   return (
     <div className="flex justify-between items-center">
       <span className="text-[11px] text-slate-400">{label}</span>
-      <span className={`text-[13px] ${bold ? 'font-bold text-slate-800' : 'font-medium text-slate-500'}`}>
+      <span className={`text-[13px] flex items-center gap-1 ${bold ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+        {trendIcon && <span className={`text-[10px] ${trendColor}`}>{trendIcon}</span>}
         {value}
       </span>
     </div>
